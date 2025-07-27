@@ -1,6 +1,7 @@
 import { openai } from '@ai-sdk/openai'
 import { generateObject, generateText } from 'ai'
 import { z } from 'zod'
+import { performanceMonitor } from './performance-monitor'
 
 // Property search tool schema
 const PropertySearchSchema = z.object({
@@ -31,13 +32,47 @@ const MarketAnalysisSchema = z.object({
   analysis_type: z.enum(['price_trends', 'inventory_levels', 'days_on_market', 'comprehensive']).describe('Type of market analysis'),
 })
 
+// Cache for storing responses to avoid redundant API calls
+const responseCache = new Map<string, any>()
+
 export class RealEstateAgent {
   private brokerData: any
   private clientData: any
+  private conversationHistory: Array<{role: 'user' | 'assistant', content: string}> = []
+  private lastSearchResults: any[] = [] // Store results of the last search
 
   constructor(brokerData: any, clientData: any) {
     this.brokerData = brokerData
     this.clientData = clientData
+  }
+
+  // Clear conversation history
+  clearHistory() {
+    this.conversationHistory = []
+  }
+
+  clearSearchResults() {
+    this.lastSearchResults = []
+  }
+
+  // Add message to conversation history
+  private addToHistory(role: 'user' | 'assistant', content: string) {
+    this.conversationHistory.push({ role, content })
+    // Keep only the last 10 messages to prevent context overflow
+    if (this.conversationHistory.length > 10) {
+      this.conversationHistory = this.conversationHistory.slice(-10)
+    }
+  }
+
+  // Generate cache key for responses
+  private generateCacheKey(message: string, selectedProperties?: string[]): string {
+    const context = {
+      message: message.toLowerCase().trim(),
+      brokerId: this.brokerData?.id,
+      clientId: this.clientData?.id,
+      selectedProperties: selectedProperties?.sort() || []
+    }
+    return JSON.stringify(context)
   }
 
   // Tool: Search for properties
@@ -62,6 +97,7 @@ export class RealEstateAgent {
       // In a real app, this would query your property database
       // For demo, we'll return mock data based on the search criteria
       const mockProperties = this.generateMockProperties(searchParams)
+      this.lastSearchResults = mockProperties // Store for comparison
       
       return {
         success: true,
@@ -171,43 +207,41 @@ export class RealEstateAgent {
     }
   }
 
-  // Main chat function
+  // Main chat function with improved performance
   async chat(message: string, selectedProperties?: string[]) {
+    const startTime = Date.now()
+    
     try {
       console.log('Chat request:', { message, brokerData: this.brokerData, clientData: this.clientData, selectedProperties })
+      
+      // Check cache first
+      const cacheKey = this.generateCacheKey(message, selectedProperties)
+      if (responseCache.has(cacheKey)) {
+        console.log('Returning cached response')
+        performanceMonitor.trackRequest(startTime, Date.now(), true)
+        return responseCache.get(cacheKey)
+      }
+
+      // Add user message to history
+      this.addToHistory('user', message)
+      
+      // Create optimized system prompt
+      const systemPrompt = this.createSystemPrompt()
       
       const result = await generateObject({
         model: openai('gpt-4o'),
         schema: z.object({
           tool: z.enum(['search_properties', 'analyze_property', 'compare_properties', 'analyze_market', 'setup_showing', 'general_help']),
           parameters: z.any(),
-          response: z.string().describe('A helpful response to the user')
+          response: z.string().describe('A helpful, concise response to the user')
         }),
-        prompt: `You are ${this.brokerData?.name || 'a professional real estate agent'} with ${this.brokerData?.years_experience || 5} years of experience specializing in ${this.brokerData?.service_area || 'residential properties'}.
-
-${this.clientData ? `Your client ${this.clientData.name} is looking for:
-- Type: ${this.clientData.rent_or_buy}
-- Budget: $${this.clientData.budget_min.toLocaleString()} - $${this.clientData.budget_max.toLocaleString()}
-- Bedrooms: ${this.clientData.bedrooms}
-- Bathrooms: ${this.clientData.bathrooms}
-- Location: ${this.clientData.location}
-- Amenities: ${this.clientData.amenities?.join(', ')}
-
-Use this context to provide personalized recommendations and responses.` : 'This is a new client without specific preferences yet.'}
-
-User message: ${message}
-
-Based on the user's message, determine which tool to use and provide a helpful response. Available tools:
-1. search_properties - ONLY when user explicitly wants to find/search for new properties
-2. analyze_property - When user asks about a specific property address or ID
-3. compare_properties - When user wants to compare multiple properties
-4. analyze_market - When user asks about market trends, conditions, or analysis
-5. setup_showing - When user wants to schedule a showing, book a viewing, or arrange a property visit
-6. general_help - For general questions, greetings, or when no specific tool is needed
-
-IMPORTANT: Only use search_properties when the user explicitly asks to find, search, or look for properties. For general questions, greetings, or other requests, use general_help.
-
-Always be professional, knowledgeable, and helpful. Use the client's preferences when available. Personalize responses based on their specific needs and preferences.`
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...this.conversationHistory.slice(-6), // Include recent conversation context
+          { role: 'user', content: message }
+        ],
+        maxTokens: 1000, // Limit response length for better performance
+        temperature: 0.7, // Slightly more creative but still focused
       })
 
       console.log('OpenAI result:', result)
@@ -241,19 +275,69 @@ Always be professional, knowledgeable, and helpful. Use the client's preferences
 
       console.log('Tool result:', toolResult)
 
-      return {
+      const response = {
         response: result.object.response,
         tool_used: result.object.tool,
         tool_result: toolResult
       }
+
+      // Cache the response for 5 minutes
+      responseCache.set(cacheKey, response)
+      setTimeout(() => responseCache.delete(cacheKey), 5 * 60 * 1000)
+
+      // Add assistant response to history
+      this.addToHistory('assistant', result.object.response)
+
+      // Track performance
+      performanceMonitor.trackRequest(startTime, Date.now(), false)
+
+      return response
     } catch (error) {
       console.error('Chat error:', error)
+      performanceMonitor.trackError()
       return {
         response: "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
         tool_used: 'general_help',
         tool_result: null
       }
     }
+  }
+
+  // Create optimized system prompt
+  private createSystemPrompt(): string {
+    const brokerInfo = this.brokerData ? 
+      `You are ${this.brokerData.name}, a professional real estate agent with ${this.brokerData.years_of_experience} years of experience specializing in ${this.brokerData.area_of_service}.` :
+      'You are a professional real estate agent with extensive experience in residential properties.'
+
+    const clientInfo = this.clientData ? 
+      `\n\nCLIENT PREFERENCES:
+- Name: ${this.clientData.name}
+- Looking to: ${this.clientData.rent_or_buy}
+- Budget: $${this.clientData.budget_min.toLocaleString()} - $${this.clientData.budget_max.toLocaleString()}
+- Property: ${this.clientData.bedrooms} bedrooms, ${this.clientData.bathrooms} bathrooms
+- Location: ${this.clientData.location}
+- Amenities: ${this.clientData.amenities?.join(', ') || 'None specified'}
+
+Use these preferences to provide personalized recommendations.` : 
+      '\n\nThis is a new client without specific preferences yet.'
+
+    return `${brokerInfo}${clientInfo}
+
+AVAILABLE TOOLS:
+1. search_properties - Use ONLY when user explicitly asks to find/search for properties
+2. analyze_property - When user asks about a specific property address or ID
+3. compare_properties - When user wants to compare multiple properties
+4. analyze_market - When user asks about market trends, conditions, or analysis
+5. setup_showing - When user wants to schedule a showing, book a viewing, or arrange a property visit
+6. general_help - For general questions, greetings, or when no specific tool is needed
+
+INSTRUCTIONS:
+- Be professional, knowledgeable, and helpful
+- Keep responses concise and actionable
+- Personalize responses based on client preferences when available
+- Only use search_properties when explicitly requested
+- For general questions or greetings, use general_help
+- Always provide value and next steps when possible`
   }
 
   // Helper methods for generating mock data
@@ -315,51 +399,112 @@ Always be professional, knowledgeable, and helpful. Use the client's preferences
   }
 
   private async generatePropertyComparison(params: any) {
-    // Generate mock property data for comparison
+    // Get the actual property data from the last search results
+    const lastSearchResults = this.lastSearchResults || []
+    
+    console.log('Available properties for comparison:', lastSearchResults.map(p => ({ id: p.id, address: p.address })))
+    console.log('Requested property IDs:', params.property_ids)
+    
+    // Filter properties based on the requested IDs
     const propertyData = params.property_ids.map((id: string) => {
-      const addresses = [
-        '9045 Oak St, Downtown',
-        '1800 Elm St, Downtown', 
-        '2081 Maple St, Downtown',
-        '5879 Oak St, Downtown',
-        '842 Elm St, Downtown',
-        '6215 Pine St, Downtown',
-        '1271 Pine St, Downtown',
-        '40 Cedar St, Downtown',
-        '1197 Maple St, Downtown',
-        '4178 Maple St, Downtown'
-      ]
+      // Find the property in the last search results
+      const foundProperty = lastSearchResults.find((prop: any) => prop.id === id)
       
-      // Use the property ID to get a consistent address
-      const propIndex = parseInt(id.replace('prop_', '')) - 1
-      const address = addresses[propIndex] || `${Math.floor(Math.random() * 9999)} ${['Oak', 'Maple', 'Pine', 'Cedar', 'Elm'][Math.floor(Math.random() * 5)]} St, Downtown`
-      
-      return {
-        id: id,
-        address: address,
-        price: Math.floor(Math.random() * 200000) + 300000,
-        price_per_sqft: Math.floor(Math.random() * 200) + 150,
-        bedrooms: Math.floor(Math.random() * 4) + 1,
-        bathrooms: Math.floor(Math.random() * 3) + 1,
-        sqft: Math.floor(Math.random() * 2000) + 800
+      if (foundProperty) {
+        console.log(`Found property ${id}:`, foundProperty.address)
+        return {
+          id: foundProperty.id,
+          address: foundProperty.address,
+          price: foundProperty.price,
+          price_per_sqft: Math.floor(foundProperty.price / foundProperty.sqft),
+          bedrooms: foundProperty.bedrooms,
+          bathrooms: foundProperty.bathrooms,
+          sqft: foundProperty.sqft,
+          amenities: foundProperty.amenities,
+          property_type: foundProperty.property_type
+        }
+      } else {
+        // Fallback if property not found in search results
+        console.warn(`Property ${id} not found in search results, using mock data`)
+        return {
+          id: id,
+          address: `Property ${id} (Not found in recent search)`,
+          price: Math.floor(Math.random() * 200000) + 300000,
+          price_per_sqft: Math.floor(Math.random() * 200) + 150,
+          bedrooms: Math.floor(Math.random() * 4) + 1,
+          bathrooms: Math.floor(Math.random() * 3) + 1,
+          sqft: Math.floor(Math.random() * 2000) + 800,
+          amenities: ['Parking', 'Gym'],
+          property_type: 'any'
+        }
       }
     })
     
+    // Calculate price comparison
+    const priceComparison = propertyData.map((prop: any) => ({
+      property_id: prop.id,
+      property_address: prop.address,
+      price: prop.price,
+      price_per_sqft: prop.price_per_sqft,
+      price_formatted: `$${prop.price.toLocaleString()}`
+    }))
+    
+    // Calculate feature comparison
+    const featureComparison = propertyData.map((prop: any) => ({
+      property_id: prop.id,
+      property_address: prop.address,
+      bedrooms: prop.bedrooms,
+      bathrooms: prop.bathrooms,
+      sqft: prop.sqft,
+      amenities: prop.amenities,
+      property_type: prop.property_type
+    }))
+    
+    // Generate recommendation based on client preferences
+    let recommendation = ''
+    if (this.clientData) {
+      const { budget_min, budget_max, bedrooms, bathrooms, location } = this.clientData
+      
+      // Find the best property based on client preferences
+      const bestProperty = propertyData.reduce((best: any, current: any) => {
+        let bestScore = 0
+        let currentScore = 0
+        
+        // Score based on budget fit
+        if (current.price >= budget_min && current.price <= budget_max) {
+          currentScore += 3
+        }
+        
+        // Score based on bedroom match
+        if (current.bedrooms >= bedrooms) {
+          currentScore += 2
+        }
+        
+        // Score based on bathroom match
+        if (current.bathrooms >= bathrooms) {
+          currentScore += 1
+        }
+        
+        // Score based on price (lower is better within budget)
+        if (current.price <= budget_max) {
+          currentScore += (budget_max - current.price) / 10000
+        }
+        
+        if (currentScore > bestScore) {
+          return current
+        }
+        return best
+      })
+      
+      recommendation = `Based on your preferences (${bedrooms} bedrooms, ${bathrooms} bathrooms, budget $${budget_min.toLocaleString()}-$${budget_max.toLocaleString()}), I recommend ${bestProperty.address} as it offers the best value for your needs.`
+    } else {
+      recommendation = `Based on the comparison, I recommend ${propertyData[0].address} as it offers the best overall value.`
+    }
+    
     return {
-      price_comparison: propertyData.map((prop: any) => ({
-        property_id: prop.id,
-        property_address: prop.address,
-        price: prop.price,
-        price_per_sqft: prop.price_per_sqft
-      })),
-      feature_comparison: propertyData.map((prop: any) => ({
-        property_id: prop.id,
-        property_address: prop.address,
-        bedrooms: prop.bedrooms,
-        bathrooms: prop.bathrooms,
-        sqft: prop.sqft
-      })),
-      recommendation: `Based on your preferences, I recommend ${propertyData[0].address} as it offers the best value for your budget.`
+      price_comparison: priceComparison,
+      feature_comparison: featureComparison,
+      recommendation: recommendation
     }
   }
 

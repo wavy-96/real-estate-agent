@@ -111,6 +111,14 @@ export default function NewClientOnboarding({
       if (data.success) {
         setOtpSent(true)
         setError('')
+        
+        // Show demo OTP in development
+        if (data.isDemo && data.demoOTP) {
+          console.log(`Demo OTP for ${watchedValues.email}: ${data.demoOTP}`)
+          // You could also show this in the UI for easier testing
+          alert(`Demo OTP: ${data.demoOTP}`)
+        }
+        
         // For demo purposes, we'll auto-verify after a delay
         setTimeout(() => setOtpVerified(true), 2000)
       } else {
@@ -148,44 +156,44 @@ export default function NewClientOnboarding({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
+        className="w-full max-w-lg"
       >
-        <div className="bg-white rounded-3xl shadow-2xl p-8">
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8 md:p-10">
           {/* Header */}
-          <div className="flex items-center mb-8">
+          <div className="flex items-center mb-10">
             <button
               onClick={onBack}
-              className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="mr-6 p-3 hover:bg-gray-100 rounded-xl transition-all duration-200"
             >
               <ArrowLeft className="w-6 h-6 text-gray-600" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Welcome!</h1>
-              <p className="text-gray-600">Let's find your perfect home</p>
+              <h1 className="text-3xl font-bold text-gray-900">Welcome!</h1>
+              <p className="text-gray-600 text-lg mt-1">Let's find your perfect home</p>
             </div>
           </div>
 
           {/* Progress Bar */}
-          <div className="mb-8">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm text-gray-500">Step {step} of 6</span>
-              <span className="text-sm text-gray-500">{Math.round((step / 6) * 100)}%</span>
+          <div className="mb-10">
+            <div className="flex justify-between mb-3">
+              <span className="text-sm font-medium text-gray-600">Step {step} of 6</span>
+              <span className="text-sm font-medium text-gray-600">{Math.round((step / 6) * 100)}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
               <motion.div
-                className="bg-blue-600 h-2 rounded-full"
+                className="bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full shadow-sm"
                 initial={{ width: 0 }}
                 animate={{ width: `${(step / 6) * 100}%` }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
               />
             </div>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
             <AnimatePresence mode="wait">
               {/* Step 1: Name */}
               {step === 1 && (
@@ -194,26 +202,28 @@ export default function NewClientOnboarding({
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-4"
+                  className="space-y-6"
                 >
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-blue-100 p-2 rounded-full">
+                  <div className="flex items-center space-x-4 mb-6">
+                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shadow-sm">
                       <User className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold text-gray-900">What&apos;s your name?</h2>
-                      <p className="text-gray-600">We&apos;ll use this to personalize your experience</p>
+                      <h2 className="text-2xl font-semibold text-gray-900">What's your name?</h2>
+                      <p className="text-gray-600 mt-1">We'll use this to personalize your experience</p>
                     </div>
                   </div>
-                  <input
-                    {...register('name')}
-                    type="text"
-                    placeholder="Enter your full name"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
-                  />
-                  {errors.name && (
-                    <p className="text-red-500 text-sm">{errors.name.message}</p>
-                  )}
+                  <div className="space-y-2">
+                    <input
+                      {...register('name')}
+                      type="text"
+                      placeholder="Enter your full name"
+                      className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                    />
+                    {errors.name && (
+                      <p className="text-red-500 text-sm font-medium">{errors.name.message}</p>
+                    )}
+                  </div>
                 </motion.div>
               )}
 
@@ -224,48 +234,50 @@ export default function NewClientOnboarding({
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-4"
+                  className="space-y-6"
                 >
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-green-100 p-2 rounded-full">
-                      <Mail className="w-6 h-6 text-green-600" />
+                  <div className="flex items-center space-x-4 mb-6">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center shadow-sm">
+                      <Mail className="w-6 h-6 text-emerald-600" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold text-gray-900">Email Address</h2>
-                      <p className="text-gray-600">We&apos;ll send you a verification code</p>
+                      <h2 className="text-2xl font-semibold text-gray-900">Email Address</h2>
+                      <p className="text-gray-600 mt-1">We'll send you a verification code</p>
                     </div>
                   </div>
-                  <input
-                    {...register('email')}
-                    type="email"
-                    placeholder="Enter your email address"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-base"
-                  />
-                  {errors.email && (
-                    <p className="text-red-500 text-sm">{errors.email.message}</p>
-                  )}
-                  
-                  {error && (
-                    <p className="text-red-500 text-sm">{error}</p>
-                  )}
-                  
-                  {watchedValues.email && !errors.email && (
-                    <button
-                      type="button"
-                      onClick={handleSendOTP}
-                      disabled={otpSent}
-                      className="w-full px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 transition-colors text-sm"
-                    >
-                      {otpSent ? 'OTP Sent!' : 'Send Verification Code'}
-                    </button>
-                  )}
+                  <div className="space-y-4">
+                    <input
+                      {...register('email')}
+                      type="email"
+                      placeholder="Enter your email address"
+                      className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-lg transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                    />
+                    {errors.email && (
+                      <p className="text-red-500 text-sm font-medium">{errors.email.message}</p>
+                    )}
+                    
+                    {error && (
+                      <p className="text-red-500 text-sm font-medium">{error}</p>
+                    )}
+                    
+                    {watchedValues.email && !errors.email && (
+                      <button
+                        type="button"
+                        onClick={handleSendOTP}
+                        disabled={otpSent}
+                        className="w-full px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-700 disabled:opacity-50 transition-all duration-200 text-lg shadow-lg hover:shadow-xl"
+                      >
+                        {otpSent ? 'OTP Sent!' : 'Send Verification Code'}
+                      </button>
+                    )}
 
-                  {otpVerified && (
-                    <div className="flex items-center space-x-2 text-green-600">
-                      <CheckCircle className="w-5 h-5" />
-                      <span className="text-sm font-medium">Email verified successfully!</span>
-                    </div>
-                  )}
+                    {otpVerified && (
+                      <div className="flex items-center space-x-3 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+                        <CheckCircle className="w-5 h-5 text-emerald-600" />
+                        <span className="text-sm font-medium text-emerald-700">Email verified successfully!</span>
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
               )}
 
@@ -276,26 +288,28 @@ export default function NewClientOnboarding({
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-4"
+                  className="space-y-6"
                 >
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-purple-100 p-2 rounded-full">
-                      <Phone className="w-6 h-6 text-purple-600" />
+                  <div className="flex items-center space-x-4 mb-6">
+                    <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center shadow-sm">
+                      <Phone className="w-6 h-6 text-violet-600" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold text-gray-900">Phone Number</h2>
-                      <p className="text-gray-600">We&apos;ll contact you about properties</p>
+                      <h2 className="text-2xl font-semibold text-gray-900">Phone Number</h2>
+                      <p className="text-gray-600 mt-1">We'll contact you about properties</p>
                     </div>
                   </div>
-                  <input
-                    {...register('phone')}
-                    type="tel"
-                    placeholder="Enter your phone number"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
-                  />
-                  {errors.phone && (
-                    <p className="text-red-500 text-sm">{errors.phone.message}</p>
-                  )}
+                  <div className="space-y-2">
+                    <input
+                      {...register('phone')}
+                      type="tel"
+                      placeholder="Enter your phone number"
+                      className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 focus:border-transparent text-lg transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                    />
+                    {errors.phone && (
+                      <p className="text-red-500 text-sm font-medium">{errors.phone.message}</p>
+                    )}
+                  </div>
                 </motion.div>
               )}
 
@@ -306,29 +320,29 @@ export default function NewClientOnboarding({
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-4"
+                  className="space-y-6"
                 >
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-orange-100 p-2 rounded-full">
-                      <Home className="w-6 h-6 text-orange-600" />
+                  <div className="flex items-center space-x-4 mb-6">
+                    <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center shadow-sm">
+                      <Home className="w-6 h-6 text-amber-600" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold text-gray-900">What are you looking for?</h2>
-                      <p className="text-gray-600">Help us understand your needs</p>
+                      <h2 className="text-2xl font-semibold text-gray-900">What are you looking for?</h2>
+                      <p className="text-gray-600 mt-1">Help us understand your needs</p>
                     </div>
                   </div>
 
                   {/* Rent or Buy */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium text-gray-700">I want to:</label>
-                    <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-4">
+                    <label className="text-lg font-medium text-gray-700">I want to:</label>
+                    <div className="grid grid-cols-2 gap-4">
                       <button
                         type="button"
                         onClick={() => setValue('rent_or_buy', 'rent')}
-                        className={`p-4 rounded-xl border-2 transition-colors ${
+                        className={`p-6 rounded-xl border-2 transition-all duration-200 text-lg font-medium ${
                           watchedValues.rent_or_buy === 'rent'
-                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                            : 'border-gray-300 hover:border-gray-400'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md'
+                            : 'border-gray-200 hover:border-gray-300 bg-white/50'
                         }`}
                       >
                         Rent
@@ -336,10 +350,10 @@ export default function NewClientOnboarding({
                       <button
                         type="button"
                         onClick={() => setValue('rent_or_buy', 'buy')}
-                        className={`p-4 rounded-xl border-2 transition-colors ${
+                        className={`p-6 rounded-xl border-2 transition-all duration-200 text-lg font-medium ${
                           watchedValues.rent_or_buy === 'buy'
-                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                            : 'border-gray-300 hover:border-gray-400'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md'
+                            : 'border-gray-200 hover:border-gray-300 bg-white/50'
                         }`}
                       >
                         Buy
@@ -348,20 +362,20 @@ export default function NewClientOnboarding({
                   </div>
 
                   {/* Budget */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium text-gray-700">Budget Range:</label>
-                    <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-4">
+                    <label className="text-lg font-medium text-gray-700">Budget Range:</label>
+                    <div className="grid grid-cols-2 gap-4">
                       <input
                         {...register('budget_min', { valueAsNumber: true })}
                         type="number"
                         placeholder="Min"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                        className="px-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent text-lg transition-all duration-200 bg-white/50 backdrop-blur-sm"
                       />
                       <input
                         {...register('budget_max', { valueAsNumber: true })}
                         type="number"
                         placeholder="Max"
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                        className="px-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent text-lg transition-all duration-200 bg-white/50 backdrop-blur-sm"
                       />
                     </div>
                   </div>
@@ -375,48 +389,48 @@ export default function NewClientOnboarding({
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-4"
+                  className="space-y-6"
                 >
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-pink-100 p-2 rounded-full">
-                      <Bed className="w-6 h-6 text-pink-600" />
+                  <div className="flex items-center space-x-4 mb-6">
+                    <div className="w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center shadow-sm">
+                      <Bed className="w-6 h-6 text-rose-600" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold text-gray-900">Property Details</h2>
-                      <p className="text-gray-600">Tell us about your ideal property</p>
+                      <h2 className="text-2xl font-semibold text-gray-900">Property Details</h2>
+                      <p className="text-gray-600 mt-1">Tell us about your ideal property</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Bedrooms:</label>
+                    <div className="space-y-2">
+                      <label className="text-lg font-medium text-gray-700">Bedrooms:</label>
                       <input
                         {...register('bedrooms', { valueAsNumber: true })}
                         type="number"
                         min="0"
                         placeholder="0"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                        className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent text-lg transition-all duration-200 bg-white/50 backdrop-blur-sm"
                       />
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Bathrooms:</label>
+                    <div className="space-y-2">
+                      <label className="text-lg font-medium text-gray-700">Bathrooms:</label>
                       <input
                         {...register('bathrooms', { valueAsNumber: true })}
                         type="number"
                         min="0"
                         placeholder="0"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                        className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent text-lg transition-all duration-200 bg-white/50 backdrop-blur-sm"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Preferred Location:</label>
+                  <div className="space-y-2">
+                    <label className="text-lg font-medium text-gray-700">Preferred Location:</label>
                     <input
                       {...register('location')}
                       type="text"
                       placeholder="e.g., Downtown, North York, Scarborough"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-base"
+                      className="w-full px-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent text-lg transition-all duration-200 bg-white/50 backdrop-blur-sm"
                     />
                   </div>
                 </motion.div>
@@ -429,15 +443,15 @@ export default function NewClientOnboarding({
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="space-y-4"
+                  className="space-y-6"
                 >
-                  <div className="flex items-center space-x-3 mb-4">
-                    <div className="bg-indigo-100 p-2 rounded-full">
+                  <div className="flex items-center space-x-4 mb-6">
+                    <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center shadow-sm">
                       <CheckCircle className="w-6 h-6 text-indigo-600" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold text-gray-900">Preferred Amenities</h2>
-                      <p className="text-gray-600">Select the amenities you&apos;d like</p>
+                      <h2 className="text-2xl font-semibold text-gray-900">Preferred Amenities</h2>
+                      <p className="text-gray-600 mt-1">Select the amenities you'd like</p>
                     </div>
                   </div>
 
@@ -447,10 +461,10 @@ export default function NewClientOnboarding({
                         key={amenity}
                         type="button"
                         onClick={() => toggleAmenity(amenity)}
-                        className={`p-3 rounded-xl border-2 transition-colors text-sm ${
+                        className={`p-4 rounded-xl border-2 transition-all duration-200 text-sm font-medium ${
                           selectedAmenities.includes(amenity)
-                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                            : 'border-gray-300 hover:border-gray-400'
+                            ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-md'
+                            : 'border-gray-200 hover:border-gray-300 bg-white/50'
                         }`}
                       >
                         {amenity}
@@ -462,30 +476,30 @@ export default function NewClientOnboarding({
             </AnimatePresence>
 
             {/* Navigation Buttons */}
-            <div className="flex space-x-3 pt-4">
+            <div className="flex space-x-4 pt-8">
               {step > 1 && (
                 <button
                   type="button"
                   onClick={prevStep}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors text-sm"
+                  className="flex-1 px-6 py-4 border border-gray-200 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-all duration-200 text-lg shadow-sm"
                 >
                   Back
                 </button>
               )}
               {step < 6 ? (
-                                  <button
-                    type="button"
-                    onClick={nextStep}
-                    disabled={!canProceed()}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
-                  >
-                    Next
-                  </button>
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  disabled={!canProceed()}
+                  className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-lg shadow-lg hover:shadow-xl"
+                >
+                  Next
+                </button>
               ) : (
                 <button
                   type="submit"
                   disabled={!canProceed()}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  className="flex-1 px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 text-lg shadow-lg hover:shadow-xl"
                 >
                   Complete Setup
                 </button>

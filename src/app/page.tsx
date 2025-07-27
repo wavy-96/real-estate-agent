@@ -206,12 +206,12 @@ export default function Home() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <LandingPage 
-              brokerName={brokerData.name} 
-              onChatClick={handleChatClick}
-              onResetDemo={handleResetDemo}
-              onDashboardClick={handleDashboard}
-            />
+                    <LandingPage
+          brokerName={brokerData.name}
+          onChatClick={handleChatClick}
+          onResetDemo={handleResetDemo}
+          onDashboardClick={handleDashboard}
+        />
           </motion.div>
         )}
 

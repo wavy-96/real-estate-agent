@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Users, UserPlus, ArrowLeft, MessageCircle } from 'lucide-react'
+import { Users, UserPlus, ArrowLeft } from 'lucide-react'
 
 interface ChatInterfaceProps {
   brokerName: string
@@ -25,24 +25,24 @@ export default function ChatInterface({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="bg-white rounded-3xl shadow-2xl p-8">
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8">
           {/* Header */}
           <div className="flex items-center mb-8">
             <button
               onClick={onBack}
-              className="mr-4 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="mr-4 p-2 hover:bg-gray-100 rounded-xl transition-all duration-200"
             >
-              <ArrowLeft className="w-6 h-6 text-gray-600" />
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
             </button>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Chat with {brokerName}</h1>
-              <p className="text-gray-600">How can I help you today?</p>
+              <p className="text-gray-600 mt-1">How can I help you today?</p>
             </div>
           </div>
 
@@ -56,55 +56,43 @@ export default function ChatInterface({
               >
                 {/* Existing Client Option */}
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.02, y: -1 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleOptionClick(onExistingClient)}
-                  className="w-full p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
+                  className="w-full p-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group border border-white/20"
                 >
                   <div className="flex items-center space-x-4">
-                    <div className="bg-white bg-opacity-20 p-3 rounded-full">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shadow-sm">
                       <Users className="w-6 h-6" />
                     </div>
-                    <div className="text-left">
-                      <h3 className="text-lg font-semibold">Existing Client</h3>
-                      <p className="text-blue-100 text-sm">
+                    <div className="text-left flex-1">
+                      <h3 className="text-lg font-semibold mb-1">Existing Client</h3>
+                      <p className="text-blue-100 text-sm leading-relaxed">
                         Welcome back! Let me show you your saved listings and recent activity.
                       </p>
                     </div>
                   </div>
                 </motion.button>
 
-
-
                 {/* New Client Option */}
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.02, y: -1 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleOptionClick(onNewClient)}
-                  className="w-full p-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group"
+                  className="w-full p-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group border border-white/20"
                 >
                   <div className="flex items-center space-x-4">
-                    <div className="bg-white bg-opacity-20 p-3 rounded-full">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shadow-sm">
                       <UserPlus className="w-6 h-6" />
                     </div>
-                    <div className="text-left">
-                      <h3 className="text-lg font-semibold">New Client</h3>
-                      <p className="text-green-100 text-sm">
+                    <div className="text-left flex-1">
+                      <h3 className="text-lg font-semibold mb-1">New Client</h3>
+                      <p className="text-emerald-100 text-sm leading-relaxed">
                         Let&apos;s get to know you and find your perfect home together.
                       </p>
                     </div>
                   </div>
                 </motion.button>
-
-                {/* Quick Info */}
-                <div className="mt-8 p-4 bg-gray-50 rounded-xl">
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <MessageCircle className="w-4 h-4" />
-                                         <span className="text-sm">
-                       I&apos;m here to help you find your dream home with personalized service.
-                     </span>
-                  </div>
-                </div>
               </motion.div>
             )}
           </AnimatePresence>

@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, ArrowLeft, Home, Search, BarChart3, GitCompare, MessageSquare } from 'lucide-react'
+import { Send, ArrowLeft, Home, Search, BarChart3, GitCompare, MessageSquare, Activity, MessageCircle } from 'lucide-react'
+import PerformanceDashboard from './PerformanceDashboard'
 
 interface Message {
   id: string
@@ -43,6 +44,7 @@ export default function AIChatInterface({ brokerData, clientData, onBack, isNewU
   const [loadingStage, setLoadingStage] = useState('')
   const [selectedProperties, setSelectedProperties] = useState<string[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [showPerformanceDashboard, setShowPerformanceDashboard] = useState(false)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -501,33 +503,52 @@ export default function AIChatInterface({ brokerData, clientData, onBack, isNewU
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex flex-col">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
+      <div className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
                 onClick={onBack}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-xl transition-all duration-200"
               >
-                <ArrowLeft className="w-6 h-6 text-gray-600" />
+                <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">AI Real Estate Assistant</h1>
-                <p className="text-sm text-gray-600">Powered by {formatName(brokerData.name)}</p>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm">
+                  <MessageCircle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-semibold text-gray-900">Real Estate Assistant</h1>
+                  <p className="text-sm text-gray-600">Powered by {formatName(brokerData.name)}</p>
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-500">Experience: {brokerData.years_experience} years</div>
-              <div className="text-sm text-gray-500">Specialty: {brokerData.service_area}</div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="hidden md:block text-right">
+                <div className="text-xs text-gray-500 font-medium">Experience</div>
+                <div className="text-sm text-gray-700">{brokerData.years_of_experience || brokerData.years_experience} years</div>
+              </div>
+              <div className="hidden md:block text-right">
+                <div className="text-xs text-gray-500 font-medium">Specialty</div>
+                <div className="text-sm text-gray-700">{brokerData.area_of_service || brokerData.service_area}</div>
+              </div>
+              <button
+                onClick={() => setShowPerformanceDashboard(!showPerformanceDashboard)}
+                className="p-2 hover:bg-gray-100 rounded-xl transition-all duration-200"
+                title="Performance Dashboard"
+              >
+                <Activity className="w-5 h-5 text-gray-600" />
+              </button>
             </div>
           </div>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="max-w-4xl mx-auto w-full px-4 py-4">
+      <div className="max-w-4xl mx-auto w-full px-6 py-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {quickActions.map((action, index) => (
             <motion.button
@@ -535,10 +556,10 @@ export default function AIChatInterface({ brokerData, clientData, onBack, isNewU
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={action.action}
-              className="flex items-center space-x-2 p-3 bg-white rounded-lg shadow-sm border hover:shadow-md transition-all"
+              className="flex items-center space-x-2 p-3 bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200"
             >
               {action.icon}
-              <span className="text-sm font-medium">{action.text}</span>
+              <span className="text-sm font-medium text-gray-700">{action.text}</span>
             </motion.button>
           ))}
         </div>
@@ -655,6 +676,12 @@ export default function AIChatInterface({ brokerData, clientData, onBack, isNewU
           </motion.button>
         </div>
       </div>
+
+      {/* Performance Dashboard */}
+      <PerformanceDashboard 
+        isVisible={showPerformanceDashboard}
+        onClose={() => setShowPerformanceDashboard(false)}
+      />
     </div>
   )
 } 
