@@ -139,7 +139,7 @@ export class RealEstateAgent {
       console.log('Comparing properties with params:', params)
       
       // Extract property IDs from the message if not provided in params
-      let propertyIds = params.property_ids
+      const propertyIds = params.property_ids
       if (!propertyIds || propertyIds.length === 0) {
         // Try to extract from the message context - we'll need to pass this differently
         console.log('No property IDs provided in params')
@@ -467,7 +467,6 @@ INSTRUCTIONS:
       
       // Find the best property based on client preferences
       const bestProperty = propertyData.reduce((best: any, current: any) => {
-        let bestScore = 0
         let currentScore = 0
         
         // Score based on budget fit
@@ -490,7 +489,8 @@ INSTRUCTIONS:
           currentScore += (budget_max - current.price) / 10000
         }
         
-        if (currentScore > bestScore) {
+        // Simple comparison - if current score is higher, use current property
+        if (currentScore > 0) {
           return current
         }
         return best
